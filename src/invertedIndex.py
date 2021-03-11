@@ -39,7 +39,6 @@ def indexConstruction(dictionary, ID, value):
 
 def dictionaryConstruction(document, ID, dictionary):
     # Loop through each zone in the documents and save all content into a string
-    docId = sorted(dictionary['doc_id'])
     corpus = ''
     for zone in document.keys():
         # Validate zone ID

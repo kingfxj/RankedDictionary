@@ -21,39 +21,46 @@ def dictionaryStore(fileName):
     next(csvReader)
 
     data = [[row[0], int(row[1]), float(row[2]), int(row[3]), float(row[4]), row[5]] for row in csvReader]
-    maximum = 0
     for i in range(len(data)):
         data[i][-1] = data[i][-1][1:-1].split(', ')
         posting = []
         for j in data[i][-1]:
-            if int(j) > maximum:
-                maximum = int(j)
             posting.append(int(j))
         data[i][-1] = posting
 
-    return (data, maximum)
+    return data
+
+def find_all(query, s):
+    start = 0
+    while True:
+        start = query.find(s, start)
+        if start == -1: return
+        yield start
+        start += len(s) # use start += 1 to find overlapping matches
 
 def getSubquery(query):
-    # Find subqueries that are in brackets
-    subquery = re.findall(r"\((.*?)\)", query)
-    # Remove those subqueries from the original query
-    for q in subquery:
-        query = query.replace('(' + q + ')', '')
-    segments = query.split()    # Get correct zone:value pairs
-    # Add those subqueries segments at the correct position
-    i = 0
-    for j in range(len(segments)):
-        if segments[j-1] in ['AND', 'OR'] and segments[j] in ['AND', 'OR']:
-            segments.insert(j, getSubquery(subquery[i]))
-            i += 1
-    if segments[-1] in ['AND', 'OR']:
-        segments.append(getSubquery(subquery[-1]))
+    colon = list(find_all(query, ':'))
+    keywordQueries = []
+    phaseQueries = []
+    if len(colon) > 0:
+        if colon[0] > 0:
+            for item in query[0 : colon[0]].split(' '):
+                if len(item) > 0:
+                    phaseQueries.append(item)
+        for i in range(0, int(len(colon)), 2):
+            keywordQueries.append(query[colon[i]+1 : colon[i + 1]])
+            if i != 0:
+                for item in query[colon[i-1]+2 : colon[i]-1].split(' '):
+                    if len(item) > 0:
+                        phaseQueries.append(item)
+        if colon[-1]+2 < len(query):
+            for item in query[colon[-1]+2 : ].split(' '):
+                if len(item) > 0:
+                    phaseQueries.append(item)
+    else:
+        phaseQueries = query.split(' ')
 
-    # For each segments, we split the zone name and the value
-    for i in range(len(segments)):
-        if type(segments[i]) != list:
-            segments[i] = segments[i].split(':')
-    return segments
+    return keywordQueries, phaseQueries
 
 #make postings objects for comparisons
 class Posting:
@@ -191,12 +198,13 @@ if __name__ == "__main__":
     number = int(arguments[2])
     query = arguments[3]
 
-    data, numberFiles = dictionaryStore(directory+'index.tsv')
+    data = dictionaryStore(directory+'index.tsv')
     for i in data:
         print(i)
-    print(numberFiles)
 
-    # segmentsCopy = getSubquery(query)
+    phaseQueries, keywordQueries = getSubquery(query)
+    print('phase:', phaseQueries)
+    print('keyword:', keywordQueries)
     # # Put NOT and AND together to use AND NOT
     # segments = []
     # for i in range(len(segmentsCopy)):

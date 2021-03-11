@@ -28,3 +28,7 @@ Run the program query.py to run the query. In Command line, go to src/ folder.
 python3 query.py [path to the tsv files are stored] [the number k of ranked documents to be returned] "query"
 For example, if the tsv files are in the current folder, the number of ranked documents to be returned is 50 and the query is ":get better: going :like you: lot"
 type python3 query.py ./ 50 ":get better: going :like you: lot"
+
+Source:
+To find All occurrences for colon:
+* https://stackoverflow.com/questions/4664850/how-to-find-all-occurrences-of-a-substring
