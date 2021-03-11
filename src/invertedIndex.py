@@ -3,6 +3,7 @@ from math import log
 from nltk import WordNetLemmatizer
 nltk.download('wordnet')
 
+
 def error(name):
     '''
     Print out the error and exit the program with -1
@@ -10,6 +11,7 @@ def error(name):
     '''
     print(name, file=sys.stderr)
     exit(-1)
+
 
 # Tokenize the list value
 def tokenize(value):
@@ -22,18 +24,21 @@ def tokenize(value):
         words.append(word)
     return words
 
-# Create the subdictionary where the keys are the words
-# and the values are [df, tf, the lists of Document IDs that they appear]
+
+# Create the dictionary where the keys are the words
+# and the values are [tf, the lists of Document IDs that they appear]
 def indexConstruction(dictionary, ID, value):
-    # D
     for word in value:
         if word in dictionary.keys():
             if ID not in dictionary[word][1]:
+                # Update tf and posting list
                 dictionary[word][0] += 1
                 dictionary[word][1].append(ID)
             else:
+                # Update tf without updating the posting list
                 dictionary[word][0] += 1
         else:
+            # New word
             dictionary[word] = [1, [ID]]
     return dictionary
 
@@ -60,18 +65,21 @@ def dictionaryConstruction(document, ID, dictionary):
 
     return dictionary
 
+
 # Create the TSV file and write the inverted index in it
 def writeTSVfile(dictionary, directory):
-    # Create tsv file for write with document name
+    # Create tsv file for write with name index.tsv
     file = open(directory+'index.tsv', 'w', newline='')
     theWriter = csv.writer(file, delimiter='\t')
     theWriter.writerow(['Word', 'tf', 'tf-weight^2', 'df', 'idf', 'Posting list'])
     # Loop through each item in the dictionary
     for item in sorted(dictionary.items()):
         if item[0] != 'doc_id' and len(item[0]) != 0:
-            # Write each word's inverted index as a row
+            # Calculate the square of tf-weight and the idf
             tfWeight2 = (1 + log(item[1][0])) * (1 + log(item[1][0]))
-            idf = log(sorted(dictionary['doc_id'])[-1]/ len(item[1][1]))
+            idf = log(sorted(dictionary['doc_id'])[-1] / len(item[1][1]))
+
+            # Write each word's inverted index as a row
             theWriter.writerow([item[0], item[1][0], tfWeight2, len(item[1][1]), idf, item[1][1]])
 
 
@@ -81,7 +89,6 @@ if __name__ == "__main__":
     if len(arguments) != 3:
         error("Invalid arguents")
     directory = arguments[2]
-
 
     # Open the input json file for read
     try:
@@ -106,11 +113,10 @@ if __name__ == "__main__":
         if len(document.keys()) < 2:
             error("Invalid Document zone")
 
-        # Create dictionary where the keys are the zone ID
-        # The value of each dictionary is a subdictionary
-        #  which is the inverted index
-        # The key for the the subdictionary are the words
-        #  and the value is a list of the document ID which they appear
+        # Create dictionary where the keys are the term
+        # The value of each dictionary is a list
+        # The first item it the tf and
+        # the second item is a list the document IDs which it appears
         dictionary = dictionaryConstruction(document, ID, dictionary)
 
     writeTSVfile(dictionary, directory)

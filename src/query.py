@@ -1,6 +1,7 @@
 import csv, re, sys
 from invertedIndex import tokenize
 
+
 def error(name):
     '''
     Print out the error and exit the program with -1
@@ -8,6 +9,7 @@ def error(name):
     '''
     print(name, file=sys.stderr)
     exit(-1)
+
 
 # Key is the file name and
 # the value is the posting lists for that file
@@ -20,7 +22,11 @@ def dictionaryStore(fileName):
     csvReader = csv.reader(inputFile, delimiter='\t')
     next(csvReader)
 
+    # Load thetsv file into a list of lists
+    # the sublists are [term, tf, tf-weight squared, df, idf, posting list]
     data = [[row[0], int(row[1]), float(row[2]), int(row[3]), float(row[4]), row[5]] for row in csvReader]
+
+    # Update the doc ID to int in each posting list
     for i in range(len(data)):
         data[i][-1] = data[i][-1][1:-1].split(', ')
         posting = []
@@ -30,6 +36,8 @@ def dictionaryStore(fileName):
 
     return data
 
+
+# Find all occurences of s inside sting query
 def find_all(query, s):
     start = 0
     while True:
@@ -38,27 +46,38 @@ def find_all(query, s):
         yield start
         start += len(s) # use start += 1 to find overlapping matches
 
+
+# Get the keyword queries and the phase queries
 def getSubquery(query):
     colon = list(find_all(query, ':'))
+    if len(colon) % 2 != 0:
+        error('Invalid query')
+
     keywordQueries = []
     phaseQueries = []
+
+    # If there are phase queries
     if len(colon) > 0:
         if colon[0] > 0:
+            # There are keywords before the first phase
             for item in query[0 : colon[0]].split(' '):
                 if len(item) > 0:
-                    phaseQueries.append(item)
+                    keywordQueries.append(item)
         for i in range(0, int(len(colon)), 2):
-            keywordQueries.append(query[colon[i]+1 : colon[i + 1]])
+            phaseQueries.append(query[colon[i]+1 : colon[i + 1]])
             if i != 0:
+                # Add keywords one by one
                 for item in query[colon[i-1]+2 : colon[i]-1].split(' '):
                     if len(item) > 0:
-                        phaseQueries.append(item)
+                        keywordQueries.append(item)
         if colon[-1]+2 < len(query):
+            # There are keyword at the end of the queries
             for item in query[colon[-1]+2 : ].split(' '):
                 if len(item) > 0:
-                    phaseQueries.append(item)
+                    keywordQueries.append(item)
     else:
-        phaseQueries = query.split(' ')
+        # Only keywords in the queries
+        keywordQueries = query.split(' ')
 
     return keywordQueries, phaseQueries
 
@@ -202,7 +221,7 @@ if __name__ == "__main__":
     for i in data:
         print(i)
 
-    phaseQueries, keywordQueries = getSubquery(query)
+    keywordQueries, phaseQueries = getSubquery(query)
     print('phase:', phaseQueries)
     print('keyword:', keywordQueries)
     # # Put NOT and AND together to use AND NOT
