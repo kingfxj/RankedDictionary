@@ -1,4 +1,5 @@
 import csv, json, nltk, string, sys
+from math import log
 from nltk import WordNetLemmatizer
 nltk.download('wordnet')
 
@@ -22,18 +23,24 @@ def tokenize(value):
     return words
 
 # Create the subdictionary where the keys are the words
-# and the values the lists of Document IDs that they appear
+# and the values are [df, tf, the lists of Document IDs that they appear]
 def indexConstruction(dictionary, ID, value):
+    # D
     for word in value:
         if word in dictionary.keys():
-            if ID not in dictionary[word]:
-                dictionary[word].append(ID)
+            if ID not in dictionary[word][1]:
+                dictionary[word][0] += 1
+                dictionary[word][1].append(ID)
+            else:
+                dictionary[word][0] += 1
         else:
-            dictionary[word] = [ID]
+            dictionary[word] = [1, [ID]]
     return dictionary
 
 def dictionaryConstruction(document, ID, dictionary):
-    # Loop through each zone in the document
+    # Loop through each zone in the documents and save all content into a string
+    docId = sorted(dictionary['doc_id'])
+    corpus = ''
     for zone in document.keys():
         # Validate zone ID
         if zone != 'doc_id':
@@ -44,26 +51,30 @@ def dictionaryConstruction(document, ID, dictionary):
             if list(document.keys()).count(zone) != 1:
                 error("Repeated zone ID" + zone)
 
-            # Save the tokenized value into dictionary contents
-            if zone in dictionary.keys():
-                dictionary[zone] = indexConstruction(dictionary[zone], ID, tokenize(document[zone].split()))
+            if corpus == '':
+                corpus += document[zone]
             else:
-                dictionary[zone] = indexConstruction({}, ID, tokenize(document[zone].split()))
+                corpus = corpus + ' ' + document[zone]
+
+    # Save the tokenized value into dictionary contents
+    dictionary = indexConstruction(dictionary, ID, tokenize(corpus.split()))
+
     return dictionary
 
 # Create the TSV file and write the inverted index in it
 def writeTSVfile(dictionary, directory):
-    # Loop through each zone in the dictionary
-    for zone in dictionary.keys():
-        if zone != 'doc_id':
-            # Create tsv file for write with zone name
-            file = open(directory+zone+'.tsv', 'w', newline='')
-            theWriter = csv.writer(file, delimiter='\t')
-            theWriter.writerow(['Word', 'Frequency', 'Posting list'])
+    # Create tsv file for write with document name
+    file = open(directory+'index.tsv', 'w', newline='')
+    theWriter = csv.writer(file, delimiter='\t')
+    theWriter.writerow(['Word', 'tf', 'tf-weight^2', 'df', 'idf', 'Posting list'])
+    # Loop through each item in the dictionary
+    for item in sorted(dictionary.items()):
+        if item[0] != 'doc_id' and len(item[0]) != 0:
             # Write each word's inverted index as a row
-            for key in sorted(dictionary[zone]):
-                if len(key) != 0:
-                    theWriter.writerow([key, len(dictionary[zone][key]), sorted(dictionary[zone][key])])
+            tfWeight2 = (1 + log(item[1][0])) * (1 + log(item[1][0]))
+            idf = log(sorted(dictionary['doc_id'])[-1]/ len(item[1][1]))
+            theWriter.writerow([item[0], item[1][0], tfWeight2, len(item[1][1]), idf, item[1][1]])
+
 
 if __name__ == "__main__":
     # Get the arguments and validate the number of arguments
@@ -71,6 +82,7 @@ if __name__ == "__main__":
     if len(arguments) != 3:
         error("Invalid arguents")
     directory = arguments[2]
+
 
     # Open the input json file for read
     try:
@@ -103,3 +115,4 @@ if __name__ == "__main__":
         dictionary = dictionaryConstruction(document, ID, dictionary)
 
     writeTSVfile(dictionary, directory)
+    print('\nDone\n')

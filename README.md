@@ -13,5 +13,18 @@
 
 # Videos
 
-* Link to Student 1's video:
-* Link to Student 2's video: 
+* Link to xinjian's video:
+* Link to skavalin's video:
+
+Run the program invertedIndex.py to create inverted index: In command line, go to src folder. type python3 invertedIndex.py [Path to json file] [Path to directory where the index will be stored
+The tsv files will be genreated in the src/ folder and each file is names according to json file name.
+For example, we use data/dr_seuss_lines.json as input and the output file directory is in current directory,
+type "python3 invertedIndex.py ../data/dr_seuss_lines.json ./" in command line
+
+If we use data/movie_plots.json as input and the output file directory is the current directory
+type "python3 invertedIndex.py ../data/movie_plots.json ./" in command line.
+
+Run the program query.py to run the query. In Command line, go to src/ folder.
+python3 query.py [path to the tsv files are stored] [the number k of ranked documents to be returned] "query"
+For example, if the tsv files are in the current folder, the number of ranked documents to be returned is 50 and the query is ":get better: going :like you: lot"
+type python3 query.py ./ 50 ":get better: going :like you: lot"
