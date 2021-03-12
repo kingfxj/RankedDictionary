@@ -28,42 +28,40 @@ def tokenize(value):
 # Create the dictionary where the keys are the words
 # and the values are [tf, A dictionary where the keys are the doc ID and
 # the values are the the list of the positions]
-def indexConstruction(dictionary, ID, value):
+def indexConstruction(dictionary, normalized, ID, value):
+    corpus = {}
     for index in range(len(value)):
+        if value[index] not in corpus.keys():
+            corpus[value[index]] = 1
+        else:
+            corpus[value[index]] += 1
+
+        # Word already exist
         if value[index] in dictionary.keys():
+            # The first time it apeears in doc ID
             if ID not in dictionary[value[index]][1].keys():
                 dictionary[value[index]][0] += 1
                 dictionary[value[index]][1][ID] = [index]
             else:
+                # Add tf and update positional list since it is not first time
                 dictionary[value[index]][0] += 1
                 dictionary[value[index]][1][ID].append(index)
         else:
+            # A new word
             dictionary[value[index]] = [1, {ID: [index]}]
 
-    return dictionary
+    squaredSum = 0
+    for word in sorted(corpus.keys()):
+        squaredSum += (1 + log10(corpus[word])) * (1 + log10(corpus[word]))
+    normalized[ID] = sqrt(squaredSum)
 
-
-# Create the dictionary to store the normalized tf for each document
-def normConstruction(normalized, ID, value):
-    corpus = {}
-    for word in value:
-        if word not in corpus.keys():
-            corpus[word] = 1
-        else:
-            corpus[word] += 1
-
-    cos = 0
-    for word in corpus.keys():
-        cos += (1 + log10(corpus[word])) * (1 + log10(corpus[word]))
-    normalized[ID] = sqrt(cos)
-
-    return normalized
+    return dictionary, normalized
 
 
 def dictionaryConstruction(document, ID, dictionary, normalized):
     # Loop through each zone in the documents and save all content into a string
     corpus = ''
-    for zone in document.keys():
+    for zone in sorted(document.keys()):
         # Validate zone ID
         if zone != 'doc_id':
             if zone not in dictionary.keys():
@@ -79,9 +77,7 @@ def dictionaryConstruction(document, ID, dictionary, normalized):
                 corpus = corpus + ' ' + document[zone]
 
     # Save the tokenized value into dictionary contents
-    dictionary = indexConstruction(dictionary, ID, tokenize(corpus.split()))
-    # {id: w^2, id: w^2, id: w^2}
-    normalized = normConstruction(normalized, ID, tokenize(corpus.split()))
+    dictionary, normalized = indexConstruction(dictionary, normalized, ID, tokenize(corpus.split()))
 
     return dictionary, normalized
 
@@ -113,7 +109,7 @@ def writeTSVfile(dictionary, normalized, directory):
         theWriter.writerow([item[0], item[1]])
 
 
-if __name__ == "__main__":
+def main():
     # Get the arguments and validate the number of arguments
     arguments = sys.argv
     if len(arguments) != 3:
@@ -152,5 +148,9 @@ if __name__ == "__main__":
         dictionary, normalized = dictionaryConstruction(document, ID, dictionary, normalized)
 
     writeTSVfile(dictionary, normalized, directory)
+
+
+if __name__ == "__main__":
+    main()
 
     print('\nDone\n')
