@@ -106,7 +106,6 @@ if __name__ == "__main__":
         if len(document.keys()) < 2:
             error("Invalid Document zone")
 
-        # Create dictionary where the keys are the zone ID
         # The value of each dictionary is a subdictionary
         #  which is the inverted index
         # The key for the the subdictionary are the words
