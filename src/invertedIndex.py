@@ -1,5 +1,5 @@
 import csv, json, nltk, string, sys
-from math import log
+from math import log10, sqrt
 from nltk import WordNetLemmatizer
 nltk.download('wordnet')
 
@@ -26,23 +26,41 @@ def tokenize(value):
 
 
 # Create the dictionary where the keys are the words
-# and the values are [tf, the lists of Document IDs that they appear]
+# and the values are [tf, A dictionary where the keys are the doc ID and
+# the values are the the list of the positions]
 def indexConstruction(dictionary, ID, value):
-    for word in value:
-        if word in dictionary.keys():
-            if ID not in dictionary[word][1]:
-                # Update tf and posting list
-                dictionary[word][0] += 1
-                dictionary[word][1].append(ID)
+    for index in range(len(value)):
+        if value[index] in dictionary.keys():
+            if ID not in dictionary[value[index]][1].keys():
+                dictionary[value[index]][0] += 1
+                dictionary[value[index]][1][ID] = [index]
             else:
-                # Update tf without updating the posting list
-                dictionary[word][0] += 1
+                dictionary[value[index]][0] += 1
+                dictionary[value[index]][1][ID].append(index)
         else:
-            # New word
-            dictionary[word] = [1, [ID]]
+            dictionary[value[index]] = [1, {ID: [index]}]
+
     return dictionary
 
-def dictionaryConstruction(document, ID, dictionary):
+
+# Create the dictionary to store the normalized tf for each document
+def normConstruction(normalized, ID, value):
+    corpus = {}
+    for word in value:
+        if word not in corpus.keys():
+            corpus[word] = 1
+        else:
+            corpus[word] += 1
+
+    cos = 0
+    for word in corpus.keys():
+        cos += (1 + log10(corpus[word])) * (1 + log10(corpus[word]))
+    normalized[ID] = sqrt(cos)
+
+    return normalized
+
+
+def dictionaryConstruction(document, ID, dictionary, normalized):
     # Loop through each zone in the documents and save all content into a string
     corpus = ''
     for zone in document.keys():
@@ -62,25 +80,37 @@ def dictionaryConstruction(document, ID, dictionary):
 
     # Save the tokenized value into dictionary contents
     dictionary = indexConstruction(dictionary, ID, tokenize(corpus.split()))
+    # {id: w^2, id: w^2, id: w^2}
+    normalized = normConstruction(normalized, ID, tokenize(corpus.split()))
 
-    return dictionary
+    return dictionary, normalized
 
 
 # Create the TSV file and write the inverted index in it
-def writeTSVfile(dictionary, directory):
+def writeTSVfile(dictionary, normalized, directory):
     # Create tsv file for write with name index.tsv
     file = open(directory+'index.tsv', 'w', newline='')
     theWriter = csv.writer(file, delimiter='\t')
-    theWriter.writerow(['Word', 'tf', 'tf-weight^2', 'df', 'idf', 'Posting list'])
+    theWriter.writerow(['Word', 'tf', 'tf-weight', 'df', 'idf', 'Posting list'])
     # Loop through each item in the dictionary
     for item in sorted(dictionary.items()):
         if item[0] != 'doc_id' and len(item[0]) != 0:
             # Calculate the square of tf-weight and the idf
-            tfWeight2 = (1 + log(item[1][0])) * (1 + log(item[1][0]))
-            idf = log(sorted(dictionary['doc_id'])[-1] / len(item[1][1]))
+            # item[1][0] is the tf, len(item[1][1].keys()) is df
+            tfWeight = (1 + log10(item[1][0]))
+            idf = log10(len(dictionary['doc_id']) / len(item[1][1].keys()))
 
             # Write each word's inverted index as a row
-            theWriter.writerow([item[0], item[1][0], tfWeight2, len(item[1][1]), idf, item[1][1]])
+            theWriter.writerow([item[0], item[1][0], tfWeight, len(item[1][1].keys()), idf, sorted(item[1][1].items())])
+
+    # Create tsv file for write with name normalized.tsv
+    file = open(directory+'normalized.tsv', 'w', newline='')
+    theWriter = csv.writer(file, delimiter='\t')
+    theWriter.writerow(['ID', 'normalized weight'])
+    # Loop through each item in the dictionary
+    for item in sorted(normalized.items()):
+        # Write each word's inverted index as a row
+        theWriter.writerow([item[0], item[1]])
 
 
 if __name__ == "__main__":
@@ -99,6 +129,7 @@ if __name__ == "__main__":
     # Load and parse json data
     inputData = json.load(inputFile)
     dictionary = {'doc_id' : []}
+    normalized = {}
     for document in inputData:
         # Validate doc_id and it is unique
         try:
@@ -116,8 +147,10 @@ if __name__ == "__main__":
         # Create dictionary where the keys are the term
         # The value of each dictionary is a list
         # The first item it the tf and
-        # the second item is a list the document IDs which it appears
-        dictionary = dictionaryConstruction(document, ID, dictionary)
+        # the second item is subdictionary where the key are doc ID and
+        # the value is a list the positionss which it appears in that doc ID
+        dictionary, normalized = dictionaryConstruction(document, ID, dictionary, normalized)
 
-    writeTSVfile(dictionary, directory)
+    writeTSVfile(dictionary, normalized, directory)
+
     print('\nDone\n')

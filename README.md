@@ -32,3 +32,6 @@ type python3 query.py ./ 50 ":get better: going :like you: lot"
 Source:
 To find All occurrences for colon:
 * https://stackoverflow.com/questions/4664850/how-to-find-all-occurrences-of-a-substring
+
+csv field larger than field limit:
+* https://stackoverflow.com/questions/15063936/csv-error-field-larger-than-field-limit-131072
