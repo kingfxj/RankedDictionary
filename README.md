@@ -13,7 +13,7 @@
 
 # Videos
 
-* Link to xinjian's video:
+* Link to xinjian's video: https://drive.google.com/file/d/1L7slZIFUthgKS-0rZl4P4NDxKZI9qxyL/view?usp=sharing
 * Link to skavalin's video:https://drive.google.com/drive/folders/1XZ2PkShNyPDaBNwmXQyNIbRANw_18dNJ?usp=sharing
 
 Run the program invertedIndex.py to create inverted index: In command line, go to src folder. type python3 invertedIndex.py [Path to json file] [Path to directory where the index will be stored
