@@ -178,13 +178,11 @@ def getIntersection(phraseQueries, data, normalized, number):
                     else:
                         i += 1
 
-    print('pool:', pool)
     if len(pool) < 5 * number and len(pool) > 0:
         minimum = 2
         biword = []
         for query in phraseQueries:
             for i in range(len(query)):
-                print([query[i][0], query[i][1]])
                 score = cosineScore([query[i][0], query[i][1]], pool, data, normalized)
                 scoreSum = 0
                 for j in score:
@@ -193,7 +191,7 @@ def getIntersection(phraseQueries, data, normalized, number):
                 if scoreSum < minimum:
                     minimum = scoreSum
                     biword = [query[i][0], query[i][1]]
-        print(phraseQueries, biword)
+
         for i in range(len(phraseQueries)):
             if biword in phraseQueries[i]:
                 phraseQueries[i].remove(biword)
@@ -242,8 +240,14 @@ def main():
             query.append(j[0])
             query.append(j[1])
     scores = cosineScore(query, pool, data, normalized)
-    for item in scores[0].keys():
-        print(item, scores[0][item])
+    print('\n\n', pool)
+    a = sorted(scores[0].items(), key=lambda x:x[1], reverse = True)
+    i = 0
+    for item in a:
+        print(item[0], item[1])
+        i += 1
+        if i == 5 * number:
+            break
 
 
 if __name__ == "__main__":
