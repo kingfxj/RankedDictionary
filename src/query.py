@@ -24,8 +24,8 @@ def dictionaryStore(fileName):
     csvReader = csv.reader(inputFile, delimiter='\t')
     next(csvReader)
 
-    # Load the tsv file into a list of lists
-    # the sublists are [term, tf, tf-weight squared, df, idf, posting list dictionary{doc_id: [positions]}]
+    # Load the tsv file into a dictionary
+    # the sublists are {term: tf, tf-weight squared, df, idf, posting list dictionary{doc_id: [positions]}]
     data = {}
     for row in csvReader:
         data[row[0]] = [int(row[1]), float(row[2]), int(row[3]), float(row[4]), row[5]]
@@ -108,7 +108,7 @@ def getSubquery(query):
     return keywordQueries, phraseQueries
 
 
-def cosineScore(keywordQuery, data, normalized):
+def cosineScore(keywordQuery, pool, data, normalized):
     # data: {term: [tf, 1 + log(tf), df, idf, posting list{id: [positions]}]}
     # normalized: {ID: score}
     # lnc.btn
@@ -120,10 +120,84 @@ def cosineScore(keywordQuery, data, normalized):
         if term in data.keys():
             # Loop through each doc id
             for ID in sorted(data[term][4].keys()):
-                # Score of that document is (1 + log(tf)) * idf / sqrt(sume of all term in that doc weight squared)
-                score[ID] = data[term][1] * data[term][3] / normalized[ID]
+                if pool != [] and ID in pool:
+                    # Score of that document is (1 + log(tf)) * idf / sqrt(sume of all term in that doc weight squared)
+                    score[ID] = data[term][1] * data[term][3] / normalized[ID]
             scores.append(score)
     return scores
+
+
+def biword(phraseQueries):
+    # print(phraseQueries)
+    for i in range(len(phraseQueries)):
+        phrases = phraseQueries[i].split(' ')
+        pair = []
+        for j in range(len(phrases)-1):
+            pair.append([phrases[j], phrases[j+1]])
+        # print(pair, phraseQueries)
+        phraseQueries[i] = pair
+        # print(phraseQueries)
+    return phraseQueries
+
+
+def sortPhrase(phrases):
+    phrases = phrases
+    phrases.sort(key = lambda phrase: phrase[1])
+    return phrases
+
+
+def getIntersection(phraseQueries, data, normalized, number):
+    pool = []
+    for query in phraseQueries:
+        for pairs in query:
+            if pairs[0] in data.keys():
+                posting1 = data[pairs[0]][-1]
+            else:
+                posting1 = {}
+            if pairs[1] in data.keys():
+                posting2 = data[pairs[1]][-1]
+            else:
+                posting2 = {}
+            # print(pairs[0], posting1, '\n')
+            # print(pairs[1], posting2, '\n\n')
+            i = 0; j = 0
+            posting12 = list(set(posting1.keys()).intersection(posting2.keys()))
+            for ID in posting12:
+                position1 = posting1[ID]
+                position2 = posting2[ID]
+                while i < len(position1) and j < len(position2):
+                    if position1[i] + 1 == position2[j]:
+                        if ID not in pool:
+                            pool.append(ID)
+                        break
+                    elif position1[i] + 1 > position2[j]:
+                        j += 1
+                    else:
+                        i += 1
+
+    print('pool:', pool)
+    if len(pool) < 5 * number and len(pool) > 0:
+        minimum = 2
+        biword = []
+        for query in phraseQueries:
+            for i in range(len(query)):
+                print([query[i][0], query[i][1]])
+                score = cosineScore([query[i][0], query[i][1]], pool, data, normalized)
+                scoreSum = 0
+                for j in score:
+                    for item in j.items():
+                        scoreSum += item[1]
+                if scoreSum < minimum:
+                    minimum = scoreSum
+                    biword = [query[i][0], query[i][1]]
+        print(phraseQueries, biword)
+        for i in range(len(phraseQueries)):
+            if biword in phraseQueries[i]:
+                phraseQueries[i].remove(biword)
+
+        pool = getIntersection(phraseQueries, data, normalized, number)
+
+    return pool
 
 
 def main():
@@ -136,22 +210,33 @@ def main():
     number = int(arguments[2])
     query = arguments[3]
 
-    data = dictionaryStore(directory+'index.tsv')
+    data = dictionaryStore(directory+'indexDr_seus.tsv')
     # print(data)
     # for i in sorted(data.keys()):
     #     print(data[i])
 
-    normalized = normalizedStore(directory + 'normalized.tsv')
+    normalized = normalizedStore(directory + 'normalizedDr_seus.tsv')
 
     keywordQueries, phraseQueries = getSubquery(query)
     # print('phrase:', phraseQueries)
     # print('keyword:', keywordQueries)
 
-    scores = cosineScore(keywordQueries, data, normalized)
-    # for i in scores:
+    scores = cosineScore(keywordQueries, [],data, normalized)
+    for _ in scores:
+        pass
     #     for j in sorted(i.items()):
     #         print(j)
     #     print()
+    biword(phraseQueries)
+    print('number:', number, 'phraseQueries:', phraseQueries)
+
+    pool = getIntersection(phraseQueries, data, normalized, number)
+    # for _ in pool:
+    #     pass
+    print('\n\npool:', pool)
+
+    scores = cosineScore(keywordQueries, pool, data, normalized)
+    print(scores)
 
 
 if __name__ == "__main__":
