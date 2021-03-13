@@ -14,7 +14,7 @@
 # Videos
 
 * Link to xinjian's video:
-* Link to skavalin's video:
+* Link to skavalin's video:https://drive.google.com/drive/folders/1XZ2PkShNyPDaBNwmXQyNIbRANw_18dNJ?usp=sharing
 
 Run the program invertedIndex.py to create inverted index: In command line, go to src folder. type python3 invertedIndex.py [Path to json file] [Path to directory where the index will be stored
 The tsv files will be genreated in the src/ folder and each file is names according to json file name.
@@ -35,3 +35,6 @@ To find All occurrences for colon:
 
 csv field larger than field limit:
 * https://stackoverflow.com/questions/15063936/csv-error-field-larger-than-field-limit-131072
+
+Nested Array sorting:
+* https://www.geeksforgeeks.org/python-sort-list-according-second-element-sublist/
