@@ -120,8 +120,11 @@ def cosineScore(keywordQuery, pool, data, normalized):
         if term in data.keys():
             # Loop through each doc id
             for ID in sorted(data[term][4].keys()):
-                if pool != [] and ID in pool:
-                    # Score of that document is (1 + log(tf)) * idf / sqrt(sume of all term in that doc weight squared)
+                if pool != []: 
+                    if ID in pool:
+                        # Score of that document is (1 + log(tf)) * idf / sqrt(sume of all term in that doc weight squared)
+                        score[ID] = data[term][1] * data[term][3] / normalized[ID]
+                else:
                     score[ID] = data[term][1] * data[term][3] / normalized[ID]
             scores.append(score)
     return scores
@@ -210,33 +213,37 @@ def main():
     number = int(arguments[2])
     query = arguments[3]
 
-    data = dictionaryStore(directory+'indexDr_seus.tsv')
+    data = dictionaryStore(directory+'index.tsv')
     # print(data)
     # for i in sorted(data.keys()):
     #     print(data[i])
 
-    normalized = normalizedStore(directory + 'normalizedDr_seus.tsv')
+    normalized = normalizedStore(directory + 'normalized.tsv')
 
     keywordQueries, phraseQueries = getSubquery(query)
     # print('phrase:', phraseQueries)
     # print('keyword:', keywordQueries)
 
     scores = cosineScore(keywordQueries, [],data, normalized)
-    for _ in scores:
-        pass
     #     for j in sorted(i.items()):
     #         print(j)
     #     print()
     biword(phraseQueries)
-    print('number:', number, 'phraseQueries:', phraseQueries)
+    # print('number:', number, 'phraseQueries:', phraseQueries)
 
     pool = getIntersection(phraseQueries, data, normalized, number)
     # for _ in pool:
     #     pass
-    print('\n\npool:', pool)
+    # print('\n\npool:', pool)
 
-    scores = cosineScore(keywordQueries, pool, data, normalized)
-    print(scores)
+    query = keywordQueries
+    for i in phraseQueries:
+        for j in i:
+            query.append(j[0])
+            query.append(j[1])
+    scores = cosineScore(query, pool, data, normalized)
+    for item in scores[0].keys():
+        print(item, scores[0][item])
 
 
 if __name__ == "__main__":
